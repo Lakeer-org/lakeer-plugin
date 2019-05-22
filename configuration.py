@@ -70,6 +70,7 @@ class Database():
         department = self.db.departments.find({'name': levels[0]})
         if department.count() > 0:
             level_boundaries = self.db.levels.find({'department_id': department[0]['_id'], 'level_type': levels[1]})
+        return level_boundaries
 
     def service_metrics_geometry(self, metric_id):
         """
