@@ -207,12 +207,6 @@ class lakeer_plugin:
             self.dlg.buttonBox.accepted.connect(self.tab2_accept)
             self.dlg.buttonBox.rejected.connect(self.reject)
 
-            # self.overlay = Overlay(self.dlg.centralWidget())
-            # self.overlay.hide()
-            # self.overlay.show()
-
-
-
         self.dlg.show()
         self.check_database_connection()
         # Run the dialog event loop
@@ -254,7 +248,6 @@ class lakeer_plugin:
         if selected_department != '-':
             level_boundaries = self.database.department_polygon(selected_department)
             vectorLayer = None
-            # assets = db.service_assets.find({"service_metric_id":self.check_list[item]})
             if selected_department not in current_layer:
                 vectorLayer = QgsVectorLayer('Polygon?crs=epsg:4326', selected_department, 'memory')
                 # vectorLayer.setCustomProperty("showFeatureCount", len(list(level_boundaries)))
@@ -277,11 +270,7 @@ class lakeer_plugin:
                 for level_boundary in level_boundaries:
                     try:
                         polygons = [[[QgsPointXY(point[0], point[1]) for point in polygon] for polygon in multi_polygon] for multi_polygon in level_boundary['geometry']['coordinates']]
-
-
-                        #new_coords_tmp = QgsMultiPolygon(level_boundary['geometry']['coordinates'])
                         geom = QgsGeometry.fromMultiPolygonXY(polygons)
-                        #geom = QgsGeometry(new_coords_tmp)
                         outGeom = QgsFeature()
                         outGeom.setFields(fields)
                         outGeom.setAttribute('name', level_boundary['name'])
@@ -303,32 +292,6 @@ class lakeer_plugin:
                 symbol.setOpacity(0.6)
                 myRenderer = QgsSingleSymbolRenderer(symbol)
                 vectorLayer.setRenderer(myRenderer)
-
-                # try:
-                #     myOpacity = 0.4
-                #     myMin = 0.0
-                #     myMax = 50.0
-                #     myLabel = 'Group 1'
-                #     myColour = QtGui.QColor('#ffee00')
-
-
-                #     mySymbol1 = QgsSymbol.defaultSymbol(vectorLayer.geometryType())
-                #     mySymbol1.setColor(myColour)
-                #     mySymbol1.setOpacity(myOpacity)
-                #     myRange1 = QgsRendererRange(myMin, myMax, mySymbol1, myLabel)
-                #     myRenderer = QgsGraduatedSymbolRenderer('', [myRange1])
-                #     vectorLayer.setRenderer(myRenderer)
-                # except:
-                #     pass
-
-                # symbol = QgsFillSymbol.defaultSymbol(vectorLayer.geometryType())
-                # symbol_layer = QgsSimpleFillSymbolLayer()
-                # symbol_layer.setColor(QColor("#ffffff"))
-                # symbol.appendSymbolLayer(symbol_layer)
-                # renderer =QgsSingleSymbolRenderer(symbol)
-                # vectorLayer.setRendererV2(renderer)
-                # vectorLayer.triggerRepaint()
-
 
                 prov.addFeatures(new_coords)
                 vectorLayer.updateExtents()
@@ -374,23 +337,9 @@ class lakeer_plugin:
 
                         outGeom = QgsFeature()
                         outGeom.setGeometry(geom)
-
-
-                        # outGeom.initAttributes(2)
-                        # outGeom.setAttributes( [asset['properties']['stop_id'], asset['properties']['stop_name']])
-                        # fields = QgsFields()
-                        # for x,y in asset['properties'].items():
-                        #
-                        #     fields.append(QgsField(x, QVariant.String))
-                        #
-                        #
                         outGeom.setFields(fields)
                         for x, y in asset['properties'].items():
                             outGeom.setAttribute(x,str(y))
-                        # if 'stop_id' in asset['properties'].keys():
-                        #     outGeom.setAttribute('stop_id',asset['properties']['stop_id'])
-                        # if 'stop_name' in asset['properties'].keys():
-                        #     outGeom.setAttribute('stop_name',asset['properties']['stop_name'])
                         new_coords.append(outGeom)
                     except Exception as e:
                         print (e)
@@ -473,37 +422,37 @@ class lakeer_plugin:
             list_widget.addTopLevelItem(targetTree)
             list_widget.setStyleSheet('''
                                              QTreeWidget {
-     alternate-background-color: yellow;
- }
-
-                                          QTreeWidget {
-     show-decoration-selected: 1;
- }
-QTreeWidget::item:first  {
-        font:bold;
-    }
- QTreeWidget::item {
-      border: 1px solid #d9d9d9;
-     border-top-color: transparent;
-     border-bottom-color: transparent;
- }
-
- QTreeWidget::item:hover {
-     background: qlineargradient(x1: 0, y1: 0, x2: 0, y2: 1, stop: 0 #e7effd, stop: 1 #cbdaf1);
-     border: 1px solid #bfcde4;
- }
-
- QTreeWidget::item:selected {
-     border: 1px solid #567dbc;
- }
-
- QTreeWidget::item:selected:active{
-     background: qlineargradient(x1: 0, y1: 0, x2: 0, y2: 1, stop: 0 #6ea1f1, stop: 1 #567dbc);
- }
-
- QTreeWidget::item:selected:!active {
-     background: qlineargradient(x1: 0, y1: 0, x2: 0, y2: 1, stop: 0 #6b9be8, stop: 1 #577fbf);
- }''')
+                                                 alternate-background-color: yellow;
+                                             }
+                                            
+                                                                                      QTreeWidget {
+                                                 show-decoration-selected: 1;
+                                             }
+                                            QTreeWidget::item:first  {
+                                                    font:bold;
+                                                }
+                                             QTreeWidget::item {
+                                                  border: 1px solid #d9d9d9;
+                                                 border-top-color: transparent;
+                                                 border-bottom-color: transparent;
+                                             }
+                                            
+                                             QTreeWidget::item:hover {
+                                                 background: qlineargradient(x1: 0, y1: 0, x2: 0, y2: 1, stop: 0 #e7effd, stop: 1 #cbdaf1);
+                                                 border: 1px solid #bfcde4;
+                                             }
+                                            
+                                             QTreeWidget::item:selected {
+                                                 border: 1px solid #567dbc;
+                                             }
+                                            
+                                             QTreeWidget::item:selected:active{
+                                                 background: qlineargradient(x1: 0, y1: 0, x2: 0, y2: 1, stop: 0 #6ea1f1, stop: 1 #567dbc);
+                                             }
+                                            
+                                             QTreeWidget::item:selected:!active {
+                                                 background: qlineargradient(x1: 0, y1: 0, x2: 0, y2: 1, stop: 0 #6b9be8, stop: 1 #577fbf);
+                                             }''')
         list_widget.setHeaderLabels(["Service metrics"])
         list_widget.itemChanged.connect(self.handle_item_changed)
 
@@ -521,42 +470,3 @@ QTreeWidget::item:first  {
         combobox.clear()
         combo_list = self.database.fetch_department()
         combobox.addItems(combo_list)
-
-
-class Overlay(QWidget):
-
-    def __init__(self, parent=None):
-        QWidget.__init__(self, parent)
-        palette = QPalette(self.palette())
-        palette.setColor(palette.Background, QtCore.Qt.transparent)
-        self.setPalette(palette)
-
-    def paintEvent(self, event):
-
-        painter = QPainter()
-        painter.begin(self)
-        painter.setRenderHint(QPainter.Antialiasing)
-        painter.fillRect(event.rect(), QBrush(QColor(255, 255, 255, 127)))
-        painter.setPen(QPen(QtCore.Qt.NoPen))
-
-        for i in range(6):
-            if (self.counter / 5) % 6 == i:
-                painter.setBrush(QBrush(QColor(127 + (self.counter % 5) * 32, 127, 127)))
-            else:
-                painter.setBrush(QBrush(QColor(127, 127, 127)))
-            painter.drawEllipse(
-                self.width() / 2 + 30 * math.cos(2 * math.pi * i / 6.0) - 10,
-                self.height() / 2 + 30 * math.sin(2 * math.pi * i / 6.0) - 10,
-                20, 20)
-        painter.end()
-
-    def showEvent(self, event):
-        self.timer = self.startTimer(50)
-        self.counter = 0
-
-    def timerEvent(self, event):
-        self.counter += 1
-        self.update()
-        if self.counter == 60:
-            self.killTimer(self.timer)
-            self.hide()
