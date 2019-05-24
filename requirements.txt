@@ -1,0 +1,2 @@
+#sudo apt install python3-pymongo
+geomet==0.2.0.post2
