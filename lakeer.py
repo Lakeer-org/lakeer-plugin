@@ -36,6 +36,8 @@ import os.path
 import math
 from .configuration import *
 from .progressbar import *
+from .layereventhandler import *
+
 
 class lakeer_plugin:
     """QGIS Plugin Implementation."""
@@ -356,6 +358,7 @@ class lakeer_plugin:
                         if len(new_coords) > 0:
                             prov.addFeatures(new_coords)
                             vectorLayer.updateExtents()
+                            # feature_layer = FeatureModifier(vectorLayer)
                     except:
                         pass
             progress_bar.update_progress(index+1)
@@ -432,38 +435,38 @@ class lakeer_plugin:
             list_widget.expandToDepth(2)
             list_widget.addTopLevelItem(targetTree)
             list_widget.setStyleSheet('''
-                                             QTreeWidget {
-                                                 alternate-background-color: yellow;
-                                             }
-                                            
-                                                                                      QTreeWidget {
-                                                 show-decoration-selected: 1;
-                                             }
-                                            QTreeWidget::item:first  {
-                                                    font:bold;
-                                                }
-                                             QTreeWidget::item {
-                                                  border: 1px solid #d9d9d9;
-                                                 border-top-color: transparent;
-                                                 border-bottom-color: transparent;
-                                             }
-                                            
-                                             QTreeWidget::item:hover {
-                                                 background: qlineargradient(x1: 0, y1: 0, x2: 0, y2: 1, stop: 0 #e7effd, stop: 1 #cbdaf1);
-                                                 border: 1px solid #bfcde4;
-                                             }
-                                            
-                                             QTreeWidget::item:selected {
-                                                 border: 1px solid #567dbc;
-                                             }
-                                            
-                                             QTreeWidget::item:selected:active{
-                                                 background: qlineargradient(x1: 0, y1: 0, x2: 0, y2: 1, stop: 0 #6ea1f1, stop: 1 #567dbc);
-                                             }
-                                            
-                                             QTreeWidget::item:selected:!active {
-                                                 background: qlineargradient(x1: 0, y1: 0, x2: 0, y2: 1, stop: 0 #6b9be8, stop: 1 #577fbf);
-                                             }''')
+                 QTreeWidget {
+                     alternate-background-color: yellow;
+                 }
+                
+                                                          QTreeWidget {
+                     show-decoration-selected: 1;
+                 }
+                QTreeWidget::item:first  {
+                        font:bold;
+                    }
+                 QTreeWidget::item {
+                      border: 1px solid #d9d9d9;
+                     border-top-color: transparent;
+                     border-bottom-color: transparent;
+                 }
+                
+                 QTreeWidget::item:hover {
+                     background: qlineargradient(x1: 0, y1: 0, x2: 0, y2: 1, stop: 0 #e7effd, stop: 1 #cbdaf1);
+                     border: 1px solid #bfcde4;
+                 }
+                
+                 QTreeWidget::item:selected {
+                     border: 1px solid #567dbc;
+                 }
+                
+                 QTreeWidget::item:selected:active{
+                     background: qlineargradient(x1: 0, y1: 0, x2: 0, y2: 1, stop: 0 #6ea1f1, stop: 1 #567dbc);
+                 }
+                
+                 QTreeWidget::item:selected:!active {
+                     background: qlineargradient(x1: 0, y1: 0, x2: 0, y2: 1, stop: 0 #6b9be8, stop: 1 #577fbf);
+                 }''')
         list_widget.setHeaderLabels(["Service metrics"])
         list_widget.itemChanged.connect(self.handle_item_changed)
 
@@ -481,3 +484,35 @@ class lakeer_plugin:
         combobox.clear()
         combo_list = self.database.fetch_department()
         combobox.addItems(combo_list)
+
+class FeatureModifier:
+    def __init__(self, vlayer):
+        self.iface=vlayer
+        self.connect_signals()
+
+    def connect_signals(self):
+        self.iface.featureAdded.connect(self.myfonction)
+        # self.vlayer.editingStarted.connect(self.editing_started)
+        # self.vlayer.editingStopped.connect(self.editing_stopped)
+        # self.vlayer.geometryChanged.connect(self.geometry_changed)
+
+    def myfonction(self):
+        print ("Geometry added")
+
+    def editing_started(self):
+        print('Editing started')
+        # Disable attributes dialog
+        # QSettings().setValue(
+        #     '/qgis/digitizing/disable_enter_attribute_values_dialog', True)
+        #self.edit_handler = LayerEventHandler(self.vlayer)
+
+    def editing_stopped(self):
+        print('Editing stopped')
+        # self.edit_handler = None
+        # # Re-enable attributes dialog
+        # # QSettings().setValue(
+        # #     '/qgis/digitizing/disable_enter_attribute_values_dialog', False)
+        # if self.vlayer.isEditable() is True:
+        #     # Rolling back changes ends destroys geometry_handler class but
+        #     # layer remains editable.  In this case, recreate it.
+        #     self.editing_started()
