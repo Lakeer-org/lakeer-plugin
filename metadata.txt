@@ -37,3 +37,5 @@ experimental=False
 # deprecated flag (applies to the whole plugin, not just a single version)
 deprecated=False
 
+plugin_dependencies=geomet==0.2.0.post2,pymongo==3.8.0
+
