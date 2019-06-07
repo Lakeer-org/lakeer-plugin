@@ -24,7 +24,7 @@
      </rect>
     </property>
     <property name="currentIndex">
-     <number>2</number>
+     <number>1</number>
     </property>
     <widget class="QWidget" name="loadData">
      <attribute name="title">
@@ -119,11 +119,6 @@
        </property>
       </widget>
      </widget>
-    </widget>
-    <widget class="QWidget" name="analysis">
-     <attribute name="title">
-      <string>Page</string>
-     </attribute>
     </widget>
     <widget class="QWidget" name="databaseSetting">
      <attribute name="title">
