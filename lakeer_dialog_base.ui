@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>473</width>
-    <height>503</height>
+    <height>504</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -24,11 +24,11 @@
      </rect>
     </property>
     <property name="currentIndex">
-     <number>1</number>
+     <number>2</number>
     </property>
-    <widget class="QWidget" name="loadData">
+    <widget class="QWidget" name="loadLayer">
      <attribute name="title">
-      <string>Load Data</string>
+      <string>Load Layers</string>
      </attribute>
      <widget class="QFrame" name="frame_loaddata">
       <property name="geometry">
@@ -58,7 +58,7 @@
         <enum>Qt::Horizontal</enum>
        </property>
        <property name="standardButtons">
-        <set>QDialogButtonBox::Cancel|QDialogButtonBox::Ok|QDialogButtonBox::Save</set>
+        <set>QDialogButtonBox::Cancel|QDialogButtonBox::Ok</set>
        </property>
        <property name="centerButtons">
         <bool>false</bool>
@@ -118,6 +118,57 @@
         <string>Select the service metrics:</string>
        </property>
       </widget>
+     </widget>
+    </widget>
+    <widget class="QWidget" name="layerSave">
+     <attribute name="title">
+      <string>Save Layers</string>
+     </attribute>
+     <widget class="QTreeWidget" name="treeWidgetMetrics">
+      <property name="geometry">
+       <rect>
+        <x>10</x>
+        <y>10</y>
+        <width>441</width>
+        <height>211</height>
+       </rect>
+      </property>
+      <property name="headerHidden">
+       <bool>false</bool>
+      </property>
+      <column>
+       <property name="text">
+        <string>Category tree</string>
+       </property>
+      </column>
+     </widget>
+     <widget class="QTreeWidget" name="treeWidgetAnalysis">
+      <property name="geometry">
+       <rect>
+        <x>10</x>
+        <y>230</y>
+        <width>441</width>
+        <height>192</height>
+       </rect>
+      </property>
+      <column>
+       <property name="text">
+        <string>Layer list</string>
+       </property>
+      </column>
+     </widget>
+     <widget class="QPushButton" name="pushButton">
+      <property name="geometry">
+       <rect>
+        <x>360</x>
+        <y>430</y>
+        <width>89</width>
+        <height>25</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>Save</string>
+      </property>
      </widget>
     </widget>
     <widget class="QWidget" name="databaseSetting">
