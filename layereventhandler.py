@@ -70,3 +70,36 @@ class LayerEventHandler(object):
         """
         geometry.translate(100, 0)
         self.vlayer.dataProvider().changeGeometryValues({fid: geometry})
+
+
+class FeatureModifier:
+    def __init__(self, vlayer):
+        self.iface=vlayer
+        self.connect_signals()
+
+    def connect_signals(self):
+        self.iface.featureAdded.connect(self.myfonction)
+        # self.vlayer.editingStarted.connect(self.editing_started)
+        # self.vlayer.editingStopped.connect(self.editing_stopped)
+        # self.vlayer.geometryChanged.connect(self.geometry_changed)
+
+    def myfonction(self):
+        print ("Geometry added")
+
+    def editing_started(self):
+        print('Editing started')
+        # Disable attributes dialog
+        # QSettings().setValue(
+        #     '/qgis/digitizing/disable_enter_attribute_values_dialog', True)
+        #self.edit_handler = LayerEventHandler(self.vlayer)
+
+    def editing_stopped(self):
+        print('Editing stopped')
+        # self.edit_handler = None
+        # # Re-enable attributes dialog
+        # # QSettings().setValue(
+        # #     '/qgis/digitizing/disable_enter_attribute_values_dialog', False)
+        # if self.vlayer.isEditable() is True:
+        #     # Rolling back changes ends destroys geometry_handler class but
+        #     # layer remains editable.  In this case, recreate it.
+        #     self.editing_started()
