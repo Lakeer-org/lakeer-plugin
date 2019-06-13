@@ -21,9 +21,9 @@
  *                                                                         *
  ***************************************************************************/
 """
-from PyQt5.QtCore import QSettings, QTranslator, qVersion, QCoreApplication, QVariant
+from PyQt5.QtCore import QSettings, QTranslator, qVersion, QCoreApplication, QVariant, Qt, QEvent
 from PyQt5.QtGui import QIcon, QStandardItem, QStandardItemModel, QColor,  QPainter, QFont, QPalette, QBrush, QPen
-from PyQt5.QtWidgets import QAction, QCheckBox, QListWidget, QTreeWidgetItem, QMessageBox, QWidget
+from PyQt5.QtWidgets import QAction, QCheckBox, QListWidget, QTreeWidgetItem, QMessageBox, QWidget, QStyledItemDelegate, QStyleOptionButton, QStyle, QTreeWidgetItemIterator
 from PyQt5 import QtGui, QtCore
 from qgis.core import *#QgsVectorLayer, QgsProject
 import qgis
@@ -37,7 +37,7 @@ import math
 from .configuration import *
 from .progressbar import *
 from .layereventhandler import *
-
+from .common import *
 
 class lakeer_plugin:
     """QGIS Plugin Implementation."""
@@ -201,7 +201,7 @@ class lakeer_plugin:
             self.first_start = False
             self.dlg = lakeer_pluginDialog()
             self.dlg.tabWidget.currentChanged.connect(self.tab_clicked)
-            self.tab_clicked(1)
+            self.tab_clicked(2)
 
             # self.dlg.tabWidget.currentChanged(0)
             # self.dlg.databaseSetting.activated.connect(self.tab2_configuration)
@@ -210,22 +210,29 @@ class lakeer_plugin:
             self.dlg.buttonBox.accepted.connect(self.tab2_accept)
             self.dlg.buttonBox.rejected.connect(self.reject)
 
+            self.dlg.pushButton.clicked.connect(self.tab3_save_layer)
+
         self.dlg.show()
-        self.check_database_connection()
+        check_database_connection(self)
         # Run the dialog event loop
         # result = self.dlg.exec_()
 
     def tab_clicked(self, i):
-        tab_selection = [self.tab1_loaddata, self.tab2_configuration]
+        tab_selection = [self.tab1_loaddata, self.tab2_savelayer, self.tab2_configuration]
         val = True
-        if i != 1:
-            val = self.check_database_connection()
+        if i != 2:
+            val = check_database_connection(self)
         if val:
             tab_selection[i]()
 
     def tab1_loaddata(self):
-        self.render_tree_widget()
+        list_widget = self.dlg.treeWidget
+        self.render_tree_widget(list_widget, 0)
         self.renderComboBox()
+
+    def tab2_savelayer(self):
+        list_widget = self.dlg.treeWidgetMetrics
+        self.render_tree_widget(list_widget, 2)
 
     def tab2_configuration(self):
         config = self.database.readSettings()
@@ -387,90 +394,63 @@ class lakeer_plugin:
         config['password'] = password or ''
         self.database.writeSettings(config)
 
-        self.check_database_connection(True)
+        check_database_connection(self, True)
 
-    def check_database_connection(self, db_update = False):
+    def tab3_save_layer(self):
+        print("Clicked")
+        self.vrfs_selected()
 
-        self.database = Database()
-        flag, msg = self.database.check_connection(serverSelectionTimeoutMS=10, connectTimeoutMS=20000)
-
-        if flag:
-            if db_update:
-                buttonReply = QMessageBox.information(self.dlg.centralwidget, 'Configuration',
-                                                  "Database connection successful.",
-                                                  QMessageBox.Yes)
-        else:
-            buttonReply = QMessageBox.critical(self.dlg.centralwidget, 'Configuration error', "Check your database connection (ERROR) : " + str(msg),
-                                               QMessageBox.Yes)
-        return flag
-
-    def render_tree_widget(self):
-
-        self.dlg.items = []
-        list_widget = self.dlg.treeWidget
+    def render_tree_widget(self, list_widget, levels):
+        """
+        Method to display tree view of all the categories and sub categories.
+        This loads the treeview for both tabs - Load layer and save layer
+        :param list_widget:
+        :param levels: 0 - Uptill 3 levels and 2 - uptill two levels
+        :return:
+        """
         list_widget.clear()
         self.check_list ={}
         self.dlg.selected_items = []
         categories =self.database.service_categories()
-
+        if levels != 0:
+            list_widget.setItemDelegate(Delegate())
         for category in categories:
             targetTree = QTreeWidgetItem([category['name']])
-            targetTree.setFlags(targetTree.flags() | QtCore.Qt.ItemIsTristate | QtCore.Qt.ItemIsUserCheckable)
+            if levels == 0:
+                targetTree.setFlags(targetTree.flags() | QtCore.Qt.ItemIsTristate | QtCore.Qt.ItemIsUserCheckable)
             targetTree.setText(0, category['name'])
             service_categories = self.database.service_per_category(category['_id'])
 
             for service_category in service_categories:
                 pathTree = QTreeWidgetItem([service_category['service_type']])
-                pathTree.setFlags(pathTree.flags() | QtCore.Qt.ItemIsTristate | QtCore.Qt.ItemIsUserCheckable)
+                if levels == 0:
+                    pathTree.setFlags(pathTree.flags() | QtCore.Qt.ItemIsTristate | QtCore.Qt.ItemIsUserCheckable)
+                else:
+                    pathTree.setFlags(pathTree.flags() | QtCore.Qt.CheckStateRole)
                 pathTree.setCheckState(0, QtCore.Qt.Unchecked)
                 pathTree.setText(0, service_category['service_type'])
                 targetTree.addChild(pathTree)
-                for service in sorted(service_category['metrics'], key=lambda x: x['display_name']):
-                    self.check_list[service['display_name']]= service['_id']
-                    child = QTreeWidgetItem([service['display_name']])
-                    child.setFlags(child.flags() | QtCore.Qt.ItemIsUserCheckable)
-                    child.setCheckState(0, QtCore.Qt.Unchecked)
-                    child.setText(0, service['display_name'])
-                    pathTree.addChild(child)
+                if levels == 0:
+                    for service in sorted(service_category['metrics'], key=lambda x: x['display_name']):
+                        self.check_list[service['display_name']]= service['_id']
+                        child = QTreeWidgetItem([service['display_name']])
+                        child.setFlags(child.flags() | QtCore.Qt.ItemIsUserCheckable)
+                        child.setCheckState(0, QtCore.Qt.Unchecked)
+                        child.setText(0, service['display_name'])
+                        pathTree.addChild(child)
             list_widget.expandToDepth(2)
             list_widget.addTopLevelItem(targetTree)
-            list_widget.setStyleSheet('''
-                 QTreeWidget {
-                     alternate-background-color: yellow;
-                 }
-                
-                                                          QTreeWidget {
-                     show-decoration-selected: 1;
-                 }
-                QTreeWidget::item:first  {
-                        font:bold;
-                    }
-                 QTreeWidget::item {
-                      border: 1px solid #d9d9d9;
-                     border-top-color: transparent;
-                     border-bottom-color: transparent;
-                 }
-                
-                 QTreeWidget::item:hover {
-                     background: qlineargradient(x1: 0, y1: 0, x2: 0, y2: 1, stop: 0 #e7effd, stop: 1 #cbdaf1);
-                     border: 1px solid #bfcde4;
-                 }
-                
-                 QTreeWidget::item:selected {
-                     border: 1px solid #567dbc;
-                 }
-                
-                 QTreeWidget::item:selected:active{
-                     background: qlineargradient(x1: 0, y1: 0, x2: 0, y2: 1, stop: 0 #6ea1f1, stop: 1 #567dbc);
-                 }
-                
-                 QTreeWidget::item:selected:!active {
-                     background: qlineargradient(x1: 0, y1: 0, x2: 0, y2: 1, stop: 0 #6b9be8, stop: 1 #577fbf);
-                 }''')
         list_widget.setHeaderLabels(["Service metrics"])
-        list_widget.itemChanged.connect(self.handle_item_changed)
+        if levels != 0:
+            list_widget.itemChanged.connect(self.handle_item_changed)
 
     def handle_item_changed(self, item, column):
+        '''
+        Method used to detect the selections made in load layer tab.
+        :param item:
+        :param column:
+        :return:
+        '''
         if item.checkState(column) == QtCore.Qt.Checked:
             if item.text(0) not in self.dlg.selected_items and item.text(0) in self.check_list.keys():
                 self.dlg.selected_items.append(item.text(0))
@@ -478,41 +458,20 @@ class lakeer_plugin:
             if item.text(0) in self.dlg.selected_items:
                 self.dlg.selected_items.remove(item.text(0))
 
+    def vrfs_selected(self):
+        iterator = QTreeWidgetItemIterator(self.dlg.treeWidgetMetrics, QTreeWidgetItemIterator.Checked)
+        while iterator.value():
+            item = iterator.value()
+            print (item.text(0))
+            iterator += 1
+
     def renderComboBox(self):
+        """
+        Method used to load departments to the dropdown.
+        :return:
+        """
         self.dlg.items = []
         combobox = self.dlg.comboBox
         combobox.clear()
         combo_list = self.database.fetch_department()
         combobox.addItems(combo_list)
-
-class FeatureModifier:
-    def __init__(self, vlayer):
-        self.iface=vlayer
-        self.connect_signals()
-
-    def connect_signals(self):
-        self.iface.featureAdded.connect(self.myfonction)
-        # self.vlayer.editingStarted.connect(self.editing_started)
-        # self.vlayer.editingStopped.connect(self.editing_stopped)
-        # self.vlayer.geometryChanged.connect(self.geometry_changed)
-
-    def myfonction(self):
-        print ("Geometry added")
-
-    def editing_started(self):
-        print('Editing started')
-        # Disable attributes dialog
-        # QSettings().setValue(
-        #     '/qgis/digitizing/disable_enter_attribute_values_dialog', True)
-        #self.edit_handler = LayerEventHandler(self.vlayer)
-
-    def editing_stopped(self):
-        print('Editing stopped')
-        # self.edit_handler = None
-        # # Re-enable attributes dialog
-        # # QSettings().setValue(
-        # #     '/qgis/digitizing/disable_enter_attribute_values_dialog', False)
-        # if self.vlayer.isEditable() is True:
-        #     # Rolling back changes ends destroys geometry_handler class but
-        #     # layer remains editable.  In this case, recreate it.
-        #     self.editing_started()
