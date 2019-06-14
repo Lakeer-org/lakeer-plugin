@@ -210,7 +210,7 @@ class lakeer_plugin:
             self.dlg.buttonBox.accepted.connect(self.tab2_accept)
             self.dlg.buttonBox.rejected.connect(self.reject)
 
-            self.dlg.pushButton.clicked.connect(self.tab3_save_layer)
+            self.dlg.pushButton.clicked.connect(self.tab3_accept)
 
         self.dlg.show()
         check_database_connection(self)
@@ -218,23 +218,41 @@ class lakeer_plugin:
         # result = self.dlg.exec_()
 
     def tab_clicked(self, i):
-        tab_selection = [self.tab1_loaddata, self.tab2_savelayer, self.tab2_configuration]
+        """
+        Tab selection load elements.
+        :param i:
+        :return:
+        """
+        tab_selection = [self.tab_loaddata, self.tab_savelayer, self.tab_configuration]
         val = True
         if i != 2:
             val = check_database_connection(self)
         if val:
             tab_selection[i]()
 
-    def tab1_loaddata(self):
+    def tab_loaddata(self):
+        """
+        Load layers tab to display tree view uptill 'n' level of metrices and departments combobox.
+        :return:
+        """
         list_widget = self.dlg.treeWidget
         self.render_tree_widget(list_widget, 0)
         self.renderComboBox()
 
-    def tab2_savelayer(self):
+    def tab_savelayer(self):
+        """
+        layer save tab load elements - tree view of categories and sub categories, new layers to be saved.
+        :return:
+        """
         list_widget = self.dlg.treeWidgetMetrics
         self.render_tree_widget(list_widget, 2)
+        self.render_layer_to_save()
 
-    def tab2_configuration(self):
+    def tab_configuration(self):
+        """
+        Database connection settings load to fields
+        :return:
+        """
         config = self.database.readSettings()
         self.dlg.txt_databasename_2.setText(config['database_name'])
         self.dlg.txt_host_2.setText(config['host'])
@@ -244,10 +262,16 @@ class lakeer_plugin:
 
 
     def reject(self):
-        print ("Inside reject")
+        """
+        Method to close the window.
+        :return:
+        """
         self.dlg.close()
 
     def tab1_accept(self):
+        """
+            Load layers tab to load metrices and departments.
+        """
         proj = QgsProject.instance()
         current_layer =[x.name() for x in proj.mapLayers().values()]
 
@@ -379,6 +403,10 @@ class lakeer_plugin:
         self.dlg.close()
 
     def tab2_accept(self):
+        """
+        Database connection settings save
+        :return:
+        """
         config={}
         database_name = self.dlg.txt_databasename_2.text().strip()
         host = self.dlg.txt_host_2.text().strip()
@@ -396,9 +424,19 @@ class lakeer_plugin:
 
         check_database_connection(self, True)
 
-    def tab3_save_layer(self):
+    def tab3_accept(self):
         print("Clicked")
-        self.vrfs_selected()
+        widget = self.dlg.treeWidgetMetrics
+        tree_selection = self.vrfs_selected(widget)
+        list_widget = self.dlg.treeWidgetAnalysis
+        layer_selection = self.vrfs_selected(list_widget)
+        if len(tree_selection)>0 and len(layer_selection)>0:
+            if self.save_layers_to_db(tree_selection, layer_selection):
+                self.tab_savelayer()
+        else:
+            QMessageBox.critical(self.dlg.centralwidget, 'Message',
+                                                  "Please select sub category and layer.",
+                                                  QMessageBox.Yes)
 
     def render_tree_widget(self, list_widget, levels):
         """
@@ -410,10 +448,11 @@ class lakeer_plugin:
         """
         list_widget.clear()
         self.check_list ={}
-        self.dlg.selected_items = []
         categories =self.database.service_categories()
         if levels != 0:
             list_widget.setItemDelegate(Delegate())
+        else:
+            self.dlg.selected_items = []
         for category in categories:
             targetTree = QTreeWidgetItem([category['name']])
             if levels == 0:
@@ -438,10 +477,11 @@ class lakeer_plugin:
                         child.setCheckState(0, QtCore.Qt.Unchecked)
                         child.setText(0, service['display_name'])
                         pathTree.addChild(child)
-            list_widget.expandToDepth(2)
+
             list_widget.addTopLevelItem(targetTree)
+            list_widget.expandAll()
         list_widget.setHeaderLabels(["Service metrics"])
-        if levels != 0:
+        if levels == 0:
             list_widget.itemChanged.connect(self.handle_item_changed)
 
     def handle_item_changed(self, item, column):
@@ -458,12 +498,15 @@ class lakeer_plugin:
             if item.text(0) in self.dlg.selected_items:
                 self.dlg.selected_items.remove(item.text(0))
 
-    def vrfs_selected(self):
-        iterator = QTreeWidgetItemIterator(self.dlg.treeWidgetMetrics, QTreeWidgetItemIterator.Checked)
+    def vrfs_selected(self, widget):
+        iterator = QTreeWidgetItemIterator(widget, QTreeWidgetItemIterator.Checked)
+        selected_items= []
         while iterator.value():
             item = iterator.value()
-            print (item.text(0))
+            if item.text(0) not in selected_items:
+                selected_items.append(item.text(0))
             iterator += 1
+        return selected_items
 
     def renderComboBox(self):
         """
@@ -475,3 +518,67 @@ class lakeer_plugin:
         combobox.clear()
         combo_list = self.database.fetch_department()
         combobox.addItems(combo_list)
+
+    def render_layer_to_save(self):
+        list_widget = self.dlg.treeWidgetAnalysis
+        list_widget.clear()
+        categories = self.database.service_categories()
+        list_widget.setItemDelegate(Delegate())
+        layers=[]
+
+        proj = QgsProject.instance()
+        layers = [x.name() for x in proj.mapLayers().values()]
+
+        for category in categories:
+            service_categories = self.database.service_per_category(category['_id'])
+            for service_category in service_categories:
+                for service in sorted(service_category['metrics'], key=lambda x: x['display_name']):
+                    if service['display_name'] in layers:
+                        layers.remove(service['display_name'])
+
+        targetTree = QTreeWidgetItem(['Layers'])
+        targetTree.setText(0, 'Layers')
+        for layer in layers:
+            pathTree = QTreeWidgetItem([layer])
+            pathTree.setFlags(pathTree.flags() | QtCore.Qt.CheckStateRole)
+            pathTree.setCheckState(0, QtCore.Qt.Unchecked)
+            pathTree.setText(0, layer)
+            targetTree.addChild(pathTree)
+        list_widget.addTopLevelItem(targetTree)
+        list_widget.expandAll()
+
+
+        # for category in categories:
+        #     targetTree = QTreeWidgetItem([category['name']])
+        #     if levels == 0:
+        #         targetTree.setFlags(targetTree.flags() | QtCore.Qt.ItemIsTristate | QtCore.Qt.ItemIsUserCheckable)
+        #     targetTree.setText(0, category['name'])
+        #     service_categories = self.database.service_per_category(category['_id'])
+        #
+        #     for service_category in service_categories:
+        #         pathTree = QTreeWidgetItem([service_category['service_type']])
+        #         if levels == 0:
+        #             pathTree.setFlags(pathTree.flags() | QtCore.Qt.ItemIsTristate | QtCore.Qt.ItemIsUserCheckable)
+        #         else:
+        #             pathTree.setFlags(pathTree.flags() | QtCore.Qt.CheckStateRole)
+        #         pathTree.setCheckState(0, QtCore.Qt.Unchecked)
+        #         pathTree.setText(0, service_category['service_type'])
+        #         targetTree.addChild(pathTree)
+        #         if levels == 0:
+        #             for service in sorted(service_category['metrics'], key=lambda x: x['display_name']):
+        #                 self.check_list[service['display_name']] = service['_id']
+        #                 child = QTreeWidgetItem([service['display_name']])
+        #                 child.setFlags(child.flags() | QtCore.Qt.ItemIsUserCheckable)
+        #                 child.setCheckState(0, QtCore.Qt.Unchecked)
+        #                 child.setText(0, service['display_name'])
+        #                 pathTree.addChild(child)
+        #     list_widget.expandToDepth(2)
+        #     list_widget.addTopLevelItem(targetTree)
+        # list_widget.setHeaderLabels(["Service metrics"])
+        # if levels != 0:
+        #     list_widget.itemChanged.connect(self.handle_item_changed)
+
+    def save_layers_to_db(self, tree_selection, layer_selection):
+        print (tree_selection, layer_selection)
+        return True
+
