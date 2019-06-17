@@ -520,6 +520,10 @@ class lakeer_plugin:
         combobox.addItems(combo_list)
 
     def render_layer_to_save(self):
+        """
+        Render layers that were newly created. Display only those layers in the list.
+        :return:
+        """
         list_widget = self.dlg.treeWidgetAnalysis
         list_widget.clear()
         categories = self.database.service_categories()
@@ -547,38 +551,32 @@ class lakeer_plugin:
         list_widget.addTopLevelItem(targetTree)
         list_widget.expandAll()
 
-
-        # for category in categories:
-        #     targetTree = QTreeWidgetItem([category['name']])
-        #     if levels == 0:
-        #         targetTree.setFlags(targetTree.flags() | QtCore.Qt.ItemIsTristate | QtCore.Qt.ItemIsUserCheckable)
-        #     targetTree.setText(0, category['name'])
-        #     service_categories = self.database.service_per_category(category['_id'])
-        #
-        #     for service_category in service_categories:
-        #         pathTree = QTreeWidgetItem([service_category['service_type']])
-        #         if levels == 0:
-        #             pathTree.setFlags(pathTree.flags() | QtCore.Qt.ItemIsTristate | QtCore.Qt.ItemIsUserCheckable)
-        #         else:
-        #             pathTree.setFlags(pathTree.flags() | QtCore.Qt.CheckStateRole)
-        #         pathTree.setCheckState(0, QtCore.Qt.Unchecked)
-        #         pathTree.setText(0, service_category['service_type'])
-        #         targetTree.addChild(pathTree)
-        #         if levels == 0:
-        #             for service in sorted(service_category['metrics'], key=lambda x: x['display_name']):
-        #                 self.check_list[service['display_name']] = service['_id']
-        #                 child = QTreeWidgetItem([service['display_name']])
-        #                 child.setFlags(child.flags() | QtCore.Qt.ItemIsUserCheckable)
-        #                 child.setCheckState(0, QtCore.Qt.Unchecked)
-        #                 child.setText(0, service['display_name'])
-        #                 pathTree.addChild(child)
-        #     list_widget.expandToDepth(2)
-        #     list_widget.addTopLevelItem(targetTree)
-        # list_widget.setHeaderLabels(["Service metrics"])
-        # if levels != 0:
-        #     list_widget.itemChanged.connect(self.handle_item_changed)
-
     def save_layers_to_db(self, tree_selection, layer_selection):
+        """
+        Save newly created layers to database.
+        :param tree_selection:
+        :param layer_selection:
+        :return:
+        """
         print (tree_selection, layer_selection)
+
+
+        proj = QgsProject.instance()
+        vectorLayer = proj.mapLayersByName(layer_selection[0])
+        if len(vectorLayer) > 0:
+            vectorLayer = vectorLayer[0]
+
+        features = vectorLayer.getFeatures()
+
+        for feature in features:
+            print("Feature ID: ", feature.id())
+            geom = feature.geometry()
+            geometry_data = geom.asJson()
+            attrs = feature.attributes()
+            attrs_names = feature.fields().names()
+            properties = {x[0]:x[1] for x in zip(attrs_names, attrs)}
+            print (properties)
+            print (geometry_data)
+
         return True
 
