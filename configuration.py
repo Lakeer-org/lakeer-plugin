@@ -1,5 +1,6 @@
 from PyQt5.QtCore import QSettings
 from pymongo import MongoClient
+import datetime
 
 class Database():
 
@@ -79,6 +80,53 @@ class Database():
         :return:
         """
         return self.db.service_assets.find({"service_metric_id": metric_id})
+
+    def create_metrics_subcategory(self, tree_selection, layer_selection):
+        """
+        Method to create service metrics entry for the new layer. This contains layer description.
+        :param tree_selection: sub category where the layer will be saved.
+        :param layer_selection: layer to save.
+        :return:
+        """
+        service_id, _id = None, None
+        flag = False
+
+        try:
+            #Find the sub category id of the service
+            services = self.db.services.find({'service_type' : tree_selection})
+            if services:
+                service_id = services[0]['service_category_id']
+
+            if service_id:
+                document = { 'name': layer_selection.replace(' ', '_'),
+                             'display_name': layer_selection.replace('_', ' '),
+                             'service_id': service_id
+                             }
+
+                #Check if service metrics already there. If found return the id
+                found_entry = None
+                #found_entry = self.db.service_metrics.find(document)
+
+                if found_entry:
+                    _id = found_entry[0]['_id']
+                else:
+                    #Find the count for setting up the position of the service metrics
+                    count = self.db.service_metrics.find({'service_id':service_id}).count()
+                    document.update({'crs': {},
+                                     'updated_at': str(datetime.datetime.now()),
+                                     'created_at':str(datetime.datetime.now()),
+                                     'position':count+1,
+                                     'description': layer_selection,
+                                     'is_visible': True,
+                                     'data_source': 'QGIS',
+                                     'data_verification': '',
+                                     'vintage': ''
+                                     })
+                    _id = self.db.service_metrics.insert(document)
+            flag = True
+        except Exception as e:
+            print (e)
+        return flag, _id
 
     def writeSettings(self, data):
         """
