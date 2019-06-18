@@ -559,24 +559,25 @@ class lakeer_plugin:
         :return:
         """
         print (tree_selection, layer_selection)
+        flag, _id = self.database.create_metrics_subcategory(tree_selection[0], layer_selection[0])
+        if flag:
+            proj = QgsProject.instance()
+            vectorLayer = proj.mapLayersByName(layer_selection[0])
+            if len(vectorLayer) > 0:
+                vectorLayer = vectorLayer[0]
 
+            features = vectorLayer.getFeatures()
 
-        proj = QgsProject.instance()
-        vectorLayer = proj.mapLayersByName(layer_selection[0])
-        if len(vectorLayer) > 0:
-            vectorLayer = vectorLayer[0]
+            for feature in features:
+                print("Feature ID: ", feature.id())
+                geom = feature.geometry()
+                geometry_data = geom.asJson()
+                attrs = feature.attributes()
+                attrs_names = feature.fields().names()
+                properties = {x[0]:x[1] for x in zip(attrs_names, attrs)}
+                print (properties)
+                print (geometry_data)
 
-        features = vectorLayer.getFeatures()
-
-        for feature in features:
-            print("Feature ID: ", feature.id())
-            geom = feature.geometry()
-            geometry_data = geom.asJson()
-            attrs = feature.attributes()
-            attrs_names = feature.fields().names()
-            properties = {x[0]:x[1] for x in zip(attrs_names, attrs)}
-            print (properties)
-            print (geometry_data)
 
         return True
 
