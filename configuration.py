@@ -105,7 +105,7 @@ class Database():
 
                 #Check if service metrics already there. If found return the id
                 found_entry = None
-                #found_entry = self.db.service_metrics.find(document)
+                found_entry = self.db.service_metrics.find(document)
 
                 if found_entry:
                     _id = found_entry[0]['_id']
@@ -127,6 +127,20 @@ class Database():
         except Exception as e:
             print (e)
         return flag, _id
+
+    def check_metrics_assets_exists(self, service_metric_id):
+        flag = False
+        if self.db.service_assets.find({'service_metric_id':service_metric_id}).count() > 0:
+            flag = True
+        return flag
+
+    def delete_metrics_assets(self, service_metric_id):
+        return self.db.service_assets.delete_many({'service_metric_id':service_metric_id})
+
+    def save_metrics_assests(self, asset_data):
+        service_assets_records = self.db.service_assets.insert_many(asset_data).inserted_ids
+        return True
+
 
     def writeSettings(self, data):
         """
