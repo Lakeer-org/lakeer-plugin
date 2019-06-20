@@ -211,6 +211,7 @@ class lakeer_plugin:
             self.dlg.buttonBox.rejected.connect(self.reject)
 
             self.dlg.pushButton.clicked.connect(self.tab3_accept)
+            self.dlg.chkNewLayer.stateChanged.connect(self.chk_display_newlayer)
 
         self.dlg.show()
         check_database_connection(self)
@@ -438,6 +439,10 @@ class lakeer_plugin:
                                                   "Please select sub category and layer.",
                                                   QMessageBox.Yes)
 
+    def chk_display_newlayer(self):
+        self.render_layer_to_save(self.dlg.chkNewLayer.isChecked())
+
+
     def render_tree_widget(self, list_widget, levels):
         """
         Method to display tree view of all the categories and sub categories.
@@ -519,7 +524,7 @@ class lakeer_plugin:
         combo_list = self.database.fetch_department()
         combobox.addItems(combo_list)
 
-    def render_layer_to_save(self):
+    def render_layer_to_save(self, all_flag=True):
         """
         Render layers that were newly created. Display only those layers in the list.
         :return:
@@ -530,15 +535,17 @@ class lakeer_plugin:
         list_widget.setItemDelegate(Delegate())
         layers=[]
 
+
         proj = QgsProject.instance()
         layers = [x.name() for x in proj.mapLayers().values()]
 
-        for category in categories:
-            service_categories = self.database.service_per_category(category['_id'])
-            for service_category in service_categories:
-                for service in sorted(service_category['metrics'], key=lambda x: x['display_name']):
-                    if service['display_name'] in layers:
-                        layers.remove(service['display_name'])
+        if all_flag:
+            for category in categories:
+                service_categories = self.database.service_per_category(category['_id'])
+                for service_category in service_categories:
+                    for service in sorted(service_category['metrics'], key=lambda x: x['display_name']):
+                        if service['display_name'] in layers:
+                            layers.remove(service['display_name'])
 
         targetTree = QTreeWidgetItem(['Layers'])
         targetTree.setText(0, 'Layers')
@@ -558,25 +565,41 @@ class lakeer_plugin:
         :param layer_selection:
         :return:
         """
-        print (tree_selection, layer_selection)
+        continue_flag = True
         flag, _id = self.database.create_metrics_subcategory(tree_selection[0], layer_selection[0])
         if flag:
-            proj = QgsProject.instance()
-            vectorLayer = proj.mapLayersByName(layer_selection[0])
-            if len(vectorLayer) > 0:
-                vectorLayer = vectorLayer[0]
 
-            features = vectorLayer.getFeatures()
+            if self.database.check_metrics_assets_exists(_id):
+                buttonReply = QMessageBox.question(self.dlg.centralwidget, 'Save Layer',
+                                                      "Layer already have features stored. Do you want to delete them?",
+                                                      QMessageBox.Yes|QMessageBox.No)
+                if buttonReply == QMessageBox.Yes:
+                    self.database.delete_metrics_assets(_id)
+                else:
+                    buttonReplyContinue = QMessageBox.question(self.dlg.centralwidget, 'Save Layer',
+                                                          "Do you still want to continue saving?",
+                                                          QMessageBox.Yes | QMessageBox.No)
+                    if buttonReplyContinue == QMessageBox.No:
+                        continue_flag = False
 
-            for feature in features:
-                print("Feature ID: ", feature.id())
-                geom = feature.geometry()
-                geometry_data = geom.asJson()
-                attrs = feature.attributes()
-                attrs_names = feature.fields().names()
-                properties = {x[0]:x[1] for x in zip(attrs_names, attrs)}
-                print (properties)
-                print (geometry_data)
+
+            if continue_flag:
+                proj = QgsProject.instance()
+                vectorLayer = proj.mapLayersByName(layer_selection[0])
+                if len(vectorLayer) > 0:
+                    vectorLayer = vectorLayer[0]
+
+                features = vectorLayer.getFeatures()
+
+                for feature in features:
+                    print("Feature ID: ", feature.id())
+                    geom = feature.geometry()
+                    geometry_data = geom.asJson()
+                    attrs = feature.attributes()
+                    attrs_names = feature.fields().names()
+                    properties = {x[0]:x[1] for x in zip(attrs_names, attrs)}
+                    print (properties)
+                    print (geometry_data)
 
 
         return True
