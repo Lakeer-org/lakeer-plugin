@@ -93,9 +93,9 @@ class Database():
 
         try:
             #Find the sub category id of the service
-            services = self.db.services.find({'service_type' : tree_selection})
+            services = list(self.db.services.find({'service_type' : tree_selection}))
             if services:
-                service_id = services[0]['service_category_id']
+                service_id = services[0]['_id']
 
             if service_id:
                 document = { 'name': layer_selection.replace(' ', '_'),
@@ -105,7 +105,7 @@ class Database():
 
                 #Check if service metrics already there. If found return the id
                 found_entry = None
-                found_entry = self.db.service_metrics.find(document)
+                found_entry = list(self.db.service_metrics.find(document))
 
                 if found_entry:
                     _id = found_entry[0]['_id']
@@ -138,8 +138,11 @@ class Database():
         return self.db.service_assets.delete_many({'service_metric_id':service_metric_id})
 
     def save_metrics_assests(self, asset_data):
-        service_assets_records = self.db.service_assets.insert_many(asset_data).inserted_ids
-        return True
+        try:
+            service_assets_records = self.db.service_assets.insert_many(asset_data).inserted_ids
+        except Exception as e:
+            print (e)
+        return len(service_assets_records)
 
 
     def writeSettings(self, data):
