@@ -130,7 +130,7 @@
         <x>10</x>
         <y>10</y>
         <width>441</width>
-        <height>211</height>
+        <height>201</height>
        </rect>
       </property>
       <property name="headerHidden">
@@ -168,6 +168,22 @@
       </property>
       <property name="text">
        <string>Save</string>
+      </property>
+     </widget>
+     <widget class="QCheckBox" name="chkNewLayer">
+      <property name="geometry">
+       <rect>
+        <x>10</x>
+        <y>210</y>
+        <width>241</width>
+        <height>23</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>Display only new layers</string>
+      </property>
+      <property name="checked">
+       <bool>true</bool>
       </property>
      </widget>
     </widget>
