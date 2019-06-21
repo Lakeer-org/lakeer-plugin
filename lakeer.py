@@ -38,6 +38,8 @@ from .configuration import *
 from .progressbar import *
 from .layereventhandler import *
 from .common import *
+import datetime
+import json
 
 class lakeer_plugin:
     """QGIS Plugin Implementation."""
@@ -433,7 +435,7 @@ class lakeer_plugin:
         layer_selection = self.vrfs_selected(list_widget)
         if len(tree_selection)>0 and len(layer_selection)>0:
             if self.save_layers_to_db(tree_selection, layer_selection):
-                self.tab_savelayer()
+                self.render_layer_to_save(self.dlg.chkNewLayer.isChecked())
         else:
             QMessageBox.critical(self.dlg.centralwidget, 'Message',
                                                   "Please select sub category and layer.",
@@ -531,15 +533,16 @@ class lakeer_plugin:
         """
         list_widget = self.dlg.treeWidgetAnalysis
         list_widget.clear()
-        categories = self.database.service_categories()
         list_widget.setItemDelegate(Delegate())
         layers=[]
 
-
         proj = QgsProject.instance()
         layers = [x.name() for x in proj.mapLayers().values()]
+        departments = self.database.fetch_department()
+        layers = list(filter(lambda x:x not in departments, layers))
 
         if all_flag:
+            categories = self.database.service_categories()
             for category in categories:
                 service_categories = self.database.service_per_category(category['_id'])
                 for service_category in service_categories:
@@ -566,10 +569,32 @@ class lakeer_plugin:
         :return:
         """
         continue_flag = True
+        print ("Entered save")
+        proj = QgsProject.instance()
+        vectorLayer = proj.mapLayersByName(layer_selection[0])
+        if len(vectorLayer) > 0:
+            vectorLayer = vectorLayer[0]
+        features = vectorLayer.getFeatures()
+
         flag, _id = self.database.create_metrics_subcategory(tree_selection[0], layer_selection[0])
         if flag:
+            records_save = []
+            for feature in features:
+                feature_data = {'circle_name':None, 'ward_name':None, 'updated_at':str(datetime.datetime.now()),
+                                'created_at':str(datetime.datetime.now())}
+                # print("Feature ID: ", feature.id())
+                geom = feature.geometry()
+                geometry_data = geom.asJson()
+                attrs = feature.attributes()
+                attrs_names = feature.fields().names()
+                properties = {x[0]: x[1] for x in zip(attrs_names, attrs)}
+                feature_data['properties'] = properties
+                feature_data['geometry'] = json.loads(geometry_data)
+                feature_data['service_metric_id'] = _id
+                feature_data['asset_type'] = layer_selection[0].replace(' ','_')
+                records_save.append(feature_data)
 
-            if self.database.check_metrics_assets_exists(_id):
+            if self.database.check_metrics_assets_exists(_id) and len(records_save) > 0:
                 buttonReply = QMessageBox.question(self.dlg.centralwidget, 'Save Layer',
                                                       "Layer already have features stored. Do you want to delete them?",
                                                       QMessageBox.Yes|QMessageBox.No)
@@ -584,23 +609,10 @@ class lakeer_plugin:
 
 
             if continue_flag:
-                proj = QgsProject.instance()
-                vectorLayer = proj.mapLayersByName(layer_selection[0])
-                if len(vectorLayer) > 0:
-                    vectorLayer = vectorLayer[0]
-
-                features = vectorLayer.getFeatures()
-
-                for feature in features:
-                    print("Feature ID: ", feature.id())
-                    geom = feature.geometry()
-                    geometry_data = geom.asJson()
-                    attrs = feature.attributes()
-                    attrs_names = feature.fields().names()
-                    properties = {x[0]:x[1] for x in zip(attrs_names, attrs)}
-                    print (properties)
-                    print (geometry_data)
-
+                saved_count = self.database.save_metrics_assests(records_save)
+                QMessageBox.information(self.dlg.centralwidget, "Save Layer", "Layer saved successfully. <br/>Added "+str(saved_count) + " features out of "+str(len(records_save))+".", QMessageBox.Yes)
+            else:
+                print("Exiting.........")
 
         return True
 
