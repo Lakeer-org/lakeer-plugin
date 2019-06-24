@@ -6,7 +6,6 @@ class ProgressBar:
     '''
     def __init__(self, total):
         # Adding dialog which will pop-up on show
-        print ("Inside Progress Bar")
         self.dialog = QProgressDialog()
         self.dialog.setWindowTitle("Progress")
         self.dialog.setLabelText("Loading 0 of "+str(total))
@@ -19,9 +18,9 @@ class ProgressBar:
         self.dialog.setBar(self.bar)
         self.bar.setMaximum(100)
         self.dialog.show()
-        QApplication.processEvents()
-        print ("Progressbar update")
         self.total_value = total
+        self.update_progress(0)
+        QApplication.processEvents()
 
     def update_progress(self, progress_value):
         '''
