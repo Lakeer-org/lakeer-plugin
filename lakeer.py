@@ -343,10 +343,10 @@ class lakeer_plugin:
             assets = self.database.service_metrics_geometry(self.check_list[item])
             if assets.count()>0:
                 if item not in current_layer:
-                    type = 'Point'
+                    geometry_type = 'Point'
                     if 'type' in assets[0]['geometry']:
-                        type = assets[0]['geometry']['type']
-                    vectorLayer = QgsVectorLayer(type+'?crs=epsg:4326', item, 'memory')
+                        geometry_type = assets[0]['geometry']['type']
+                    vectorLayer = QgsVectorLayer(geometry_type+'?crs=epsg:4326', item, 'memory')
 
                     proj.addMapLayer(vectorLayer)
                 else:
@@ -374,9 +374,12 @@ class lakeer_plugin:
                     for asset in assets:
                         try:
                             if 'type' in asset['geometry'] and 'coordinates' in asset['geometry']:
-                                del(asset['geometry']['_id'])
-                                del(asset['geometry']['created_at'])
-                                del(asset['geometry']['updated_at'])
+                                if '_id' in asset['geometry']:
+                                    del(asset['geometry']['_id'])
+                                if 'created_at' in asset['geometry']:
+                                    del(asset['geometry']['created_at'])
+                                if 'updated_at' in asset['geometry']:
+                                    del(asset['geometry']['updated_at'])
                                 geom = QgsGeometry.fromWkt(wkt.dumps(asset['geometry']))
 
                                 outGeom = QgsFeature()
