@@ -590,7 +590,7 @@ class lakeer_plugin:
                 geometry_data = geom.asJson()
                 attrs = feature.attributes()
                 attrs_names = feature.fields().names()
-                properties = {x[0]: x[1] for x in zip(attrs_names, attrs)}
+                properties = {x[0].replace('.',''): x[1] if x[1] != NULL else '' for x in zip(attrs_names, attrs)}
                 feature_data['properties'] = properties
                 feature_data['geometry'] = json.loads(geometry_data)
                 feature_data['service_metric_id'] = _id
