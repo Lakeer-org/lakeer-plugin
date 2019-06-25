@@ -1,6 +1,7 @@
 from PyQt5.QtCore import QSettings
 from pymongo import MongoClient
 import datetime
+import urllib
 
 class Database():
 
@@ -8,7 +9,7 @@ class Database():
         self.database = self.readSettings()
         usrpwd=''
         if self.database['username'] and self.database['password']:
-            usrpwd = self.database['username']+':'+self.database['password']+'@'
+            usrpwd = self.database['username']+':'+urllib.parse.quote(self.database['password'])+'@'
 
         self.connection = 'mongodb://'+usrpwd+ self.database['host']+':'+self.database['port']+'/'+self.database['database_name']
         #self.check_connection()
@@ -21,7 +22,7 @@ class Database():
         except Exception as e:
             msg = str(e)
         if not msg:
-            self.db = self.mongo_client.lakeer
+            self.db = self.mongo_client[self.database['database_name']]
         return False if msg else True, msg
 
     def fetch_department(self):
@@ -138,6 +139,7 @@ class Database():
         return self.db.service_assets.delete_many({'service_metric_id':service_metric_id})
 
     def save_metrics_assests(self, asset_data):
+        service_assets_records=[]
         try:
             service_assets_records = self.db.service_assets.insert_many(asset_data).inserted_ids
         except Exception as e:
