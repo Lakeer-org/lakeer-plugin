@@ -32,5 +32,8 @@ def classFactory(iface):  # pylint: disable=invalid-name
     :type iface: QgsInterface
     """
     #
+    import pip
+    pip.main(['install', 'geomet==0.2.0.post2'])
+    pip.main(['install', 'pymongo==3.8.0'])
     from .lakeer import lakeer_plugin
     return lakeer_plugin(iface)
