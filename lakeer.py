@@ -275,13 +275,21 @@ class lakeer_plugin:
         """
             Load layers tab to load metrices and departments.
         """
-        proj = QgsProject.instance()
-        current_layer =[x.name() for x in proj.mapLayers().values()]
+
+
 
         ####################################################
         ## Load department
         ####################################################
         selected_department = self.dlg.comboBox.currentText()
+
+        if selected_department == '-' and len(self.dlg.selected_items) ==0:
+            QMessageBox.information(self.dlg.centralwidget, "Message", "Nothing selected to load", QMessageBox.Yes)
+            return
+
+        proj = QgsProject.instance()
+        current_layer = [x.name() for x in proj.mapLayers().values()]
+
         if selected_department != '-':
             level_boundaries = self.database.department_polygon(selected_department)
             vectorLayer = None
@@ -337,74 +345,75 @@ class lakeer_plugin:
         # Display selected metrics
         #
         ################################################################
-        progress_bar = ProgressBar(len(self.dlg.selected_items))
-        for index, item in enumerate(self.dlg.selected_items):
-            vectorLayer = None
-            assets = self.database.service_metrics_geometry(self.check_list[item])
-            if assets.count()>0:
-                if item not in current_layer:
-                    geometry_type = 'Point'
-                    if 'type' in assets[0]['geometry']:
-                        geometry_type = assets[0]['geometry']['type']
-                    vectorLayer = QgsVectorLayer(geometry_type+'?crs=epsg:32643', item, 'memory')
+        if len(self.dlg.selected_items) > 0:
+            progress_bar = ProgressBar(len(self.dlg.selected_items))
+            for index, item in enumerate(self.dlg.selected_items):
+                vectorLayer = None
+                assets = self.database.service_metrics_geometry(self.check_list[item])
+                if assets.count()>0:
+                    if item not in current_layer:
+                        geometry_type = 'Point'
+                        if 'type' in assets[0]['geometry']:
+                            geometry_type = assets[0]['geometry']['type']
+                        vectorLayer = QgsVectorLayer(geometry_type+'?crs=epsg:32643', item, 'memory')
 
-                    proj.addMapLayer(vectorLayer)
-                else:
-                    vectorLayerTemp = proj.mapLayersByName(item)
-                    if len(vectorLayerTemp) >0:
-                        vectorLayer = vectorLayerTemp[0]
-                        vectorLayer.dataProvider().truncate()
+                        proj.addMapLayer(vectorLayer)
+                    else:
+                        vectorLayerTemp = proj.mapLayersByName(item)
+                        if len(vectorLayerTemp) >0:
+                            vectorLayer = vectorLayerTemp[0]
+                            vectorLayer.dataProvider().truncate()
 
-                if vectorLayer:
-                    prov = vectorLayer.dataProvider()
-                    #fields = prov.fields()
-                    #vectorLayer.updateFields()
-                    #feat =vectorLayer.getFeatures()
-                    #attrs = feat.attributes()
-                    #geom = feat.geometry()
-                    #coords = geom.asPoint()
+                    if vectorLayer:
+                        prov = vectorLayer.dataProvider()
+                        #fields = prov.fields()
+                        #vectorLayer.updateFields()
+                        #feat =vectorLayer.getFeatures()
+                        #attrs = feat.attributes()
+                        #geom = feat.geometry()
+                        #coords = geom.asPoint()
 
-                    new_coords =[]
-                    fields = QgsFields()
-                    for x, y in assets[0]['properties'].items():
-                        fields.append(QgsField(x, QVariant.String))
-                    prov.addAttributes(fields)
-                    vectorLayer.updateFields()
-                    fields = prov.fields()
-                    for asset in assets:
+                        new_coords =[]
+                        fields = QgsFields()
+                        for x, y in assets[0]['properties'].items():
+                            fields.append(QgsField(x, QVariant.String))
+                        prov.addAttributes(fields)
+                        vectorLayer.updateFields()
+                        fields = prov.fields()
+                        for asset in assets:
+                            try:
+                                if 'type' in asset['geometry'] and 'coordinates' in asset['geometry']:
+                                    if '_id' in asset['geometry']:
+                                        del(asset['geometry']['_id'])
+                                    if 'created_at' in asset['geometry']:
+                                        del(asset['geometry']['created_at'])
+                                    if 'updated_at' in asset['geometry']:
+                                        del(asset['geometry']['updated_at'])
+                                    geom = QgsGeometry.fromWkt(wkt.dumps(asset['geometry']))
+
+                                    outGeom = QgsFeature()
+                                    outGeom.setGeometry(geom)
+                                    outGeom.setFields(fields)
+                                    for x, y in asset['properties'].items():
+                                        outGeom.setAttribute(x,str(y))
+                                    new_coords.append(outGeom)
+                            except Exception as e:
+                                print (e)
+                        #outGeom.setAttributes(attrs)
                         try:
-                            if 'type' in asset['geometry'] and 'coordinates' in asset['geometry']:
-                                if '_id' in asset['geometry']:
-                                    del(asset['geometry']['_id'])
-                                if 'created_at' in asset['geometry']:
-                                    del(asset['geometry']['created_at'])
-                                if 'updated_at' in asset['geometry']:
-                                    del(asset['geometry']['updated_at'])
-                                geom = QgsGeometry.fromWkt(wkt.dumps(asset['geometry']))
+                            if len(new_coords) > 0:
+                                prov.addFeatures(new_coords)
+                                vectorLayer.updateExtents()
+                                # feature_layer = FeatureModifier(vectorLayer)
+                        except:
+                            pass
+                progress_bar.update_progress(index+1)
+            root = QgsProject.instance().layerTreeRoot()
+            for child in root.children():
+                if isinstance(child, QgsLayerTreeLayer):
+                    child.setCustomProperty("showFeatureCount", True)
 
-                                outGeom = QgsFeature()
-                                outGeom.setGeometry(geom)
-                                outGeom.setFields(fields)
-                                for x, y in asset['properties'].items():
-                                    outGeom.setAttribute(x,str(y))
-                                new_coords.append(outGeom)
-                        except Exception as e:
-                            print (e)
-                    #outGeom.setAttributes(attrs)
-                    try:
-                        if len(new_coords) > 0:
-                            prov.addFeatures(new_coords)
-                            vectorLayer.updateExtents()
-                            # feature_layer = FeatureModifier(vectorLayer)
-                    except:
-                        pass
-            progress_bar.update_progress(index+1)
-        root = QgsProject.instance().layerTreeRoot()
-        for child in root.children():
-            if isinstance(child, QgsLayerTreeLayer):
-                child.setCustomProperty("showFeatureCount", True)
-
-        qgis.utils.iface.zoomToActiveLayer()
+            qgis.utils.iface.zoomToActiveLayer()
 
         self.dlg.close()
 
