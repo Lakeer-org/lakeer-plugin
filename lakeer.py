@@ -54,6 +54,7 @@ class lakeer_plugin:
         """
         # Save reference to the QGIS interface
         self.iface = iface
+
         # initialize plugin directory
         self.plugin_dir = os.path.dirname(__file__)
         # initialize locale
@@ -294,7 +295,7 @@ class lakeer_plugin:
             level_boundaries = self.database.department_polygon(selected_department)
             vectorLayer = None
             if selected_department not in current_layer:
-                vectorLayer = QgsVectorLayer('Polygon?crs=epsg:32643', selected_department, 'memory')
+                vectorLayer = QgsVectorLayer('Polygon?crs=epsg:4326', selected_department, 'memory')
                 # vectorLayer.setCustomProperty("showFeatureCount", len(list(level_boundaries)))
                 proj.addMapLayer(vectorLayer)
             else:
@@ -355,7 +356,7 @@ class lakeer_plugin:
                         geometry_type = 'Point'
                         if 'type' in assets[0]['geometry']:
                             geometry_type = assets[0]['geometry']['type']
-                        vectorLayer = QgsVectorLayer(geometry_type+'?crs=epsg:32643', item, 'memory')
+                        vectorLayer = QgsVectorLayer(geometry_type+'?crs=epsg:4326', item, 'memory') #32643#4326
 
                         proj.addMapLayer(vectorLayer)
                     else:
