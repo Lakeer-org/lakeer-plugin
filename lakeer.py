@@ -73,7 +73,7 @@ class lakeer_plugin:
 
         # Declare instance attributes
         self.actions = []
-        self.menu = self.tr(u'&lakeer plugin')
+        self.menu = self.tr(u'&Data wizard')
 
         # Check if plugin was started the first time in current QGIS session
         # Must be set in initGui() to survive plugin reloads
@@ -176,7 +176,7 @@ class lakeer_plugin:
         icon_path = ':/plugins/lakeer/icon.png'
         self.add_action(
             icon_path,
-            text=self.tr(u'lakeer plugin'),
+            text=self.tr(u'Data wizard'),
             callback=self.run,
             parent=self.iface.mainWindow())
 
@@ -188,7 +188,7 @@ class lakeer_plugin:
         """Removes the plugin menu item and icon from QGIS GUI."""
         for action in self.actions:
             self.iface.removePluginMenu(
-                self.tr(u'&lakeer plugin'),
+                self.tr(u'&Data wizard'),
                 action)
             self.iface.removeToolBarIcon(action)
 

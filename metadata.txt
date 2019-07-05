@@ -7,7 +7,7 @@
 # This file should be included when you package your plugin.# Mandatory items:
 
 [general]
-name=lakeer plugin
+name=Data wizard
 qgisMinimumVersion=3.0
 description=lakeer plugin to import/export data
 version=0.1
